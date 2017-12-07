@@ -5,6 +5,7 @@
 # names: A-Dawg, V-Bank, E-Money
 
 from collections import defaultdict
+import math
 
 """
     Milestone methods:
@@ -29,11 +30,11 @@ nonEndPunc = [";", ":", ",", "-", "&", "–", "(", ")", "{", "}", "[", "]", "<",
 # TODO: consider slanted single quotes
 # TODO: consider the newline
 suffixes = ["e", "es", "ly", "est", "ing", "s", "ism", "ist", "est", "ness", "ship", "sion", "tion", "ies", "ate", "ed", "en", "ize", "ise", "able", "ible", "al", "esque", "ful", "fully", "ic", "ical", "ious", "ous", "ish", "less", "y"]
-suffixes.sort(key = len, reverse=True)
+suffixes.sort(key = len, reverse = True)
 suffixCons = ["s"]
 suffixVow2Cons = ["ing"]
 
-def readText (fileName1):
+def readTextFromFile (fileName1):
     # reads text from a textFile
     currentFile = open(fileName1, "r")
     text = currentFile.readlines()
@@ -56,12 +57,14 @@ def getSentences (wordList):
         for i in range(len(wordList)):
             if (wordList[i][-1] in endPunc):
                 sentenceList.append(wordList[:i + 1])
-                print(sentenceList)
                 return sentenceList + getSentences(wordList[i + 1:])
-    
     return sentenceList
 
-def makeSentenceDictionary (sentenceList):
+# wordList = ["I", "am", "a", "penis.", "Violet", "is", "also", "a", "penis."]
+
+# print(getSentences(wordList))
+
+def makeSentenceLengths (sentenceList):
     # returns a dictionary of sentences lengths and their frequencies
     sentenceDictionary = {}
     for i in sentenceList:
@@ -69,20 +72,18 @@ def makeSentenceDictionary (sentenceList):
             sentenceDictionary[len(i)] = 1
         else:
             sentenceDictionary[len(i)] += 1
-    print("sentence dictionary")
-    print(sentenceDictionary)
-    print("")
     
     return sentenceDictionary
 
+# TODO: modify this getWords so that it doesn't mutate text
 def getWords (wordList):
     # returns a list containing words (with no punctuation)
     for i in range(len(wordList)): # to clean list of all puntuation
-        if wordList[i] in nonEndPunc or wordList[i] in endPunc:
+        if wordList[i] in nonEndPunc or wordList[i] in endPunc: # to clean word if it is just punctuation
             del wordList[i]
-        elif wordList[i][-1] in nonEndPunc or wordList[i][-1] in endPunc:
+        elif wordList[i][-1] in nonEndPunc or wordList[i][-1] in endPunc: # to clean end of word punctuation
             if len(wordList[i]) >= 2: # to avoid a index out of bounds error
-                if wordList[i][-2] in nonEndPunc or wordList[i][-2] in endPunc: 
+                if wordList[i][-2] in nonEndPunc or wordList[i][-2] in endPunc: # to clean 2nd from last punctuation
                     wordList[i] = wordList[i][:-2]
                 else:
                     wordList[i] = wordList[i][:-1]
@@ -90,10 +91,6 @@ def getWords (wordList):
                 wordList[i] = wordList[i][:-1]
         elif wordList[i][0] in nonEndPunc or wordList[i][0] in endPunc:
             wordList[i] = wordList[i][1:]
-
-    print("word list")
-    print(wordList)
-    print("")
 
     return wordList
 
@@ -105,10 +102,6 @@ def makeWordLengthDictionary (wordList):
             wordLengthDictionary[len(i)] = 1
         else:
             wordLengthDictionary[len(i)] += 1
-
-    print("word length dict")
-    print(wordLengthDictionary)
-    print("")
     
     return wordLengthDictionary
 
@@ -120,10 +113,6 @@ def makeWordCountDictionary (wordList):
             wordCountDictionary[i] = 1
         else:
             wordCountDictionary[i] += 1
-
-    print("word count dict")
-    print(wordCountDictionary)
-    print("")
     
     return wordCountDictionary
 
@@ -141,10 +130,6 @@ def getPunc (wordList):
         if wordList[i][0] in nonEndPunc or wordList[i][0] in endPunc:
             puncList.append(wordList[i][0])
 
-    print("punctuation list")
-    print(puncList)
-    print("")
-
     return puncList
 
 def makePuncCountDictionary (puncList):
@@ -155,81 +140,96 @@ def makePuncCountDictionary (puncList):
             puncCountDictionary[i] = 1
         else:
             puncCountDictionary[i] += 1
-
-    print("punctuation count dict")
-    print(puncCountDictionary)
-    print("")
     
     return puncCountDictionary
 
-    def getStems(wordList):
-        # returns a list of all word stems found
-        stemList = []
-        for i in wordList:
-            for j in suffixes:
-                if j in i:
-                    stemList.append(i[:-len(j)])
-                    break
-            stemList.append(i)        
+def getStems(wordList):
+    # returns a list of all word stems found
+    stemList = []
+    for i in wordList:
+        for j in suffixes:
+            l = len(j)
+            if i[-l:] == j:
+                stemList.append(i[:-l])
+                break
+        stemList.append(i)        
 
-        return stemList       
+    return stemList       
 
-    def makeStemsDictionary (stemList):
-        # returns a dictionary of stems and their frequencies
-        stemsDictionary = {}
-        for i in stemList:
-            if not (i in list(stemsDictionary.keys())):
-                stemsDictionary[i] = 1
-            else:
-                stemsDictionary[i] += 1
+def makeStemsDictionary (stemList):
+    # returns a dictionary of stems and their frequencies
+    stemsDictionary = {}
+    for i in stemList:
+        if not (i in list(stemsDictionary.keys())):
+            stemsDictionary[i] = 1
+        else:
+            stemsDictionary[i] += 1
 
-        return stemsDictionary
+    return stemsDictionary
 
+def normaliseDictionary (dictionary):
+    # returns a normalised version (value = between 0 and 1) of any input dictionary
+    counts = sum(list(dictionary.values()))
+    for i in list(dictionary.keys()):
+        dictionary[i] = dictionary[i]/counts
+    
+    return dictionary
 
+def buildTextModel(fileName):
+    """ Calls dictionary building functions to create 5 dictionaries for a given text file.
+        Returns the dictionaries in a list. 
+    """
 
+    text = readTextFromFile(fileName) # a wordList
+    sentences = getSentences(text) # a sentenceList
+    puncs = getPunc(text) # a puncList
+    justWords = getWords(text) # a list of only words (no punctuation), MODIFIES TEXT SO THAT IT HAS NO PUNCTUATION
+    stems = getStems(justWords)
 
-text1 = readText("testText.txt") # a wordList
-sentencesText1 = getSentences(text1) # a sentenceList
-puncs = getPunc(text1) # a puncList
+    wordLength = makeWordLengthDictionary(justWords) # dictionary of key = length of word, value = frequency
+    wordCount = makeWordCountDictionary(justWords) # dictionary of key = word, value = frequency
+    punctuation = makePuncCountDictionary(puncs) # dictionary of key = punctuation, value = frequency
+    sentenceLength = makeSentenceLengths(sentences) # dictionary of key = length of sentences, value = frequency
+    stemsDictionary = makeStemsDictionary(stems) # dictionary of key = stem, value = frequency
 
+    return [wordCount, wordLength, stemsDictionary, sentenceLength, punctuation]
 
-justWords = getWords(text1) # a list of only words (no punctuation)
-print("juuuuuuust words",justWords)
-makeWordLengthDictionary(justWords) # dictionary of key = length of word, value = frequency
-makeWordCountDictionary(justWords) # dictionary of key = word, value = frequency
-makePuncCountDictionary(puncs) # dictionary of key = punctuation, value = frequency
+def normaliseModel (TM):
+    # normalises all dictionaries in textModel
+    outputTextModel = []
+    for i in TM:
+        outputTextModel.append(normaliseDictionary(i))
+    
+    return outputTextModel
 
-makeSentenceDictionary(sentencesText1) # dictionary of key = length of sentences, value = frequency
+def smallestValue (dictionary1, dictionary2):
+    # returns the smallest value between both dictionary1 and dictionary2
+    min1 = min(dictionary1.values())
+    min2 = min(dictionary2.values())
+    return min(min1, min2)
 
+def compareDictionaries (unknownDictionary, dictionary1, dictionary2):
+    minvalue = smallestValue(dictionary1, dictionary2)
+    minvalue = 0.001
 
+    probability1 = 1
+    for i in unknownDictionary:
+        if i in dictionary1.keys(): 
+            probability1 *= dictionary1[i]
+        else:
+            probability1 *= minvalue/2
+    
+    probability2 = 1
+    for i in unknownDictionary:
+        if i in dictionary2.keys(): 
+            probability2 *= dictionary2[i]
+        else:
+            probability2 *= minvalue/2
 
+    return [math.log(probability1), math.log(probability2)]
 
-
-
-
-
-
-
-TextModel1 = [ ]  # start with the empty list
-
-words1 = defaultdict( int )  # default dictionary for counting
-TextModel1 = TextModel1 + [ words1 ]  # add that dictionary in...
-
-wordlengths1 = defaultdict( int )  # default dictionary for counting
-TextModel1 = TextModel1 + [ wordlengths1 ]  # add that dictionary in...
-
-stems1 = defaultdict( int )  # default dictionary for counting
-TextModel1 = TextModel1 + [ stems1 ]  # add that dictionary in...
-
-sentencelengths1 = defaultdict( int )  # default dictionary for counting
-TextModel1 = TextModel1 + [ sentencelengths1 ]  # add that dictionary in...
-
-# create one of your own...
-# words1 = defaultdict( int )  # default dictionary for counting
-# TextModel1 = TextModel1 + [ words1 ]  # add that dictionary in...
-
+# TODO: change TM to textModel
 # a function to print all of the dictionaries in a TextModel1
-
 def printAllDictionaries( TM ):
     """ a function to print all of the dictionaries in TM
         input: TM, a text model (a list of 5 or more dictionaries)
@@ -238,17 +238,34 @@ def printAllDictionaries( TM ):
     wordlengths = TM[1]
     stems = TM[2]
     sentencelengths = TM[3]
+    punctuation = TM[4]
 
     print("\nWords:\n", words)
     print("\nWord lengths:\n", wordlengths)
     print("\nStems:\n", stems)
     print("\nSentence lengths:\n", sentencelengths)
+    print("\nPunctuation:\n", punctuation)
+    # print("\nNormalised Words:\n", TM[5])
     print("\n\n")
 
-
-# include other functions here...
-
-
 # and, test things out here...
+TextModel1 = buildTextModel("testText1.txt") 
 print("TextModel1:")
 printAllDictionaries(TextModel1)
+normalModel1 = normaliseModel(TextModel1)
+printAllDictionaries(normalModel1)
+
+TextModel2 = buildTextModel("testText2.txt") 
+print("TextModel2:")
+printAllDictionaries(TextModel2)
+normalModel2 = normaliseModel(TextModel2)
+printAllDictionaries(normalModel2)
+
+TextModel3 = buildTextModel("testText3.txt") 
+print("TextModel3:")
+printAllDictionaries(TextModel3)
+normalModel3 = normaliseModel(TextModel3)
+printAllDictionaries(normalModel3)
+
+minValue = smallestValue(normalModel2[0], normalModel3[0])
+compareDictionaries(normalModel1[0], normalModel2[0], normalModel3[0])
