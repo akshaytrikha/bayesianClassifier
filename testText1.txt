@@ -1,2 +1,1 @@
-This is a small sentence. This isn't a small sentence, because this sentence contains ten words and an exclamation!
-This isn't a question, is it?
+This is test text 1! I am writing it in the first person, and I'm using an excited tone! Glad to be writing this today. 
